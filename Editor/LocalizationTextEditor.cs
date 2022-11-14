@@ -154,9 +154,11 @@ namespace GameWarriors.LocalizeDomain.Editor
 
             EditorUtility.SetDirty(_localizeData);
             GUILayout.Space(10);
+
             GUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("Term :", GUILayout.Width(50));
             GUILayout.EndHorizontal();
+
             EditorGUILayout.Space();
 
             for (int i = 0; i < count; i++)
@@ -171,6 +173,7 @@ namespace GameWarriors.LocalizeDomain.Editor
                 GUILayout.EndHorizontal();
                 GUILayout.Space(10);
             }
+
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("New Term", GUILayout.Width(200), GUILayout.Height(40)))
             {
@@ -207,20 +210,75 @@ namespace GameWarriors.LocalizeDomain.Editor
             GUILayout.EndHorizontal();
         }
 
-        private void DrawTermsListTab()
+        private void DrawSearchSection()
         {
-            EditorGUILayout.SelectableLabel("Current Language");
             GUILayout.BeginHorizontal();
             GUILayout.Label("search :", GUILayout.Width(50));
             _searchContent = EditorGUILayout.TextField(_searchContent, GUILayout.Width(200));
             GUILayout.EndHorizontal();
+        }
+
+        private void DrawModifySection()
+        {
+            GUILayout.BeginVertical();
+            if (GUILayout.Button("Save", GUILayout.Width(100), GUILayout.Height(45)))
+            {
+                int b = EditorUtility.DisplayDialogComplex("Save Term", "Are You Sure?", "Save", "Cancle", "Don't Save");
+                if (b == 0 && _languageCount > 0)
+                {
+                    EditorUtility.SetDirty(_localizeData);
+                    //RefreshPrefab();
+                    Term t = new Term(_languageContents[0], new string[_languageCount]);
+
+                    for (int i = 0; i < _languageCount; i++)
+                    {
+                        t.Contents[i] = _languageContents[i + 1];
+                    }
+                    UpdateData(t);
+                    AssetDatabase.SaveAssets();
+                    AssetDatabase.Refresh();
+
+                    Debug.Log("save");
+                }
+                //}
+            }
+            GUILayout.Space(20);
+            if (_termsTable == null)
+                Initialization();
+            GUILayout.Label(_termsTable.Translate(_localizeData.GetTermKeyAt(_indexSelect), (ELanguageType)1), GUILayout.Width(500));
+            GUILayout.Space(80);
+            if (GUILayout.Button("Delete", GUILayout.Width(100), GUILayout.Height(45)))
+            {
+                if (EditorUtility.DisplayDialogComplex("Do Delete", "Are You Sure For Delete?", "Delete", "cancle", "Dont Delete") == 0)
+                {
+                    EditorUtility.SetDirty(_localizeData);
+                    RemoveData(_localizeData.GetTermKeyAt(_indexSelect));
+                    RefreshPrefab();
+                    AssetDatabase.SaveAssets();
+                    AssetDatabase.Refresh();
+                    if (_localizeData.DataCount <= _indexSelect)
+                        _indexSelect = _localizeData.DataCount - 1;
+                }
+            }
+            GUILayout.EndVertical();
+        }
+
+        private void DrawTermsListTab()
+        {
+            EditorGUILayout.SelectableLabel("Current Language");
+
+            DrawSearchSection();
+
             EditorGUILayout.Space();
             EditorGUILayout.BeginVertical();
             GUILayout.Label("count Terms :" + _localizeData.DataCount, GUILayout.Width(150));
             EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
             //GUILayout.Label("_____________________________________________________________", GUILayout.Width(480));
             if (_localizeData.DataCount == 0)
+            {
+                EditorGUILayout.EndVertical();
                 return;
+            }
             _scrollViewRect = EditorGUILayout.BeginScrollView(_scrollViewRect, GUILayout.Height(500), GUILayout.Width(420));
             for (int i = 0; i < _localizeData.DataCount; ++i)
             {
@@ -270,6 +328,7 @@ namespace GameWarriors.LocalizeDomain.Editor
             }
             EditorGUILayout.EndScrollView();
             EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
+
             EditorGUILayout.BeginHorizontal();
             GUILayout.Space(10);
             GUILayout.Space(10);
@@ -281,48 +340,9 @@ namespace GameWarriors.LocalizeDomain.Editor
             ShowTranslateterm(_indexSelect);
             EditorGUILayout.EndScrollView();
             GUILayout.Space(100);
-            GUILayout.BeginVertical();
-            if (GUILayout.Button("Save", GUILayout.Width(100), GUILayout.Height(45)))
-            {
-                int b = EditorUtility.DisplayDialogComplex("Save Term", "Are You Sure?", "Save", "Cancle", "Don't Save");
-                if (b == 0 && _languageCount > 0)
-                {
-                    EditorUtility.SetDirty(_localizeData);
-                    //RefreshPrefab();
-                    Term t = new Term(_languageContents[0], new string[_languageCount]);
-
-                    for (int i = 0; i < _languageCount; i++)
-                    {
-                        t.Contents[i] = _languageContents[i + 1];
-                    }
-                    UpdateData(t);
-                    AssetDatabase.SaveAssets();
-                    AssetDatabase.Refresh();
-
-                    Debug.Log("save");
-                }
-                //}
-            }
-            GUILayout.Space(20);
-            if (_termsTable == null)
-                Initialization();
-            GUILayout.Label(_termsTable.Translate(_localizeData.GetTermKeyAt(_indexSelect), (ELanguageType)1), GUILayout.Width(500));
-            GUILayout.Space(80);
-            if (GUILayout.Button("Delete", GUILayout.Width(100), GUILayout.Height(45)))
-            {
-                if (EditorUtility.DisplayDialogComplex("Do Delete", "Are You Sure For Delete?", "Delete", "cancle", "Dont Delete") == 0)
-                {
-                    EditorUtility.SetDirty(_localizeData);
-                    RemoveData(_localizeData.GetTermKeyAt(_indexSelect));
-                    RefreshPrefab();
-                    AssetDatabase.SaveAssets();
-                    AssetDatabase.Refresh();
-                    if (_localizeData.DataCount <= _indexSelect)
-                        _indexSelect = _localizeData.DataCount - 1;
-                }
-            }
-            GUILayout.EndVertical();
+            DrawModifySection();
             GUILayout.EndHorizontal();
+
             GUILayout.EndVertical();
         }
 

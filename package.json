@@ -1,6 +1,6 @@
 {
   "name": "com.gamewarriors.localization",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "displayName": "Localization",
   "description": "This package provide simple text localization tool",
   "unity": "2020.3",
