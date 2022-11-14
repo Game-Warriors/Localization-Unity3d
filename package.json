@@ -1,0 +1,20 @@
+{
+  "name": "com.gamewarriors.localization",
+  "version": "0.0.1",
+  "displayName": "Localization",
+  "description": "This package provide simple text localization tool",
+  "unity": "2020.3",
+  "unityRelease": "0b5",
+  "dependencies": {
+  },
+  "keywords": [
+    "Unity3d",
+    "Localization",
+    "Language"
+  ],
+  "author": {
+    "name": "Game Warriors",
+    "email": "mahdifada.eddini@outlook.com",
+    "url": "https://www.gamewarriorsstudio.com"
+  }
+}

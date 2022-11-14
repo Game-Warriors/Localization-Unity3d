@@ -1,0 +1,16 @@
+{
+    "name": "GameWarriors.LocalizeDomain.Editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:c56d9717b706c484290b06deb7064e52"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
