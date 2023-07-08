@@ -1,3 +1,6 @@
+  version : 0.0.5
+  fix some editor bugs
+
   version : 0.0.4
   depart different langauge data from one asset and separate to exclusive data asset for each language
 

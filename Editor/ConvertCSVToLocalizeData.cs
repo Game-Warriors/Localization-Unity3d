@@ -10,7 +10,7 @@ namespace GameWarriors.LocalizeDomain.Editor
 {
     public class ConvertCSVToLocalizeData
     {
-        private const string SPLIT_STRING = ";";
+        private const string SPLIT_STRING = ",";
 
         [MenuItem("Tools/Localization/Convert CSV To LocalizationData")]
         private static void ConvertCSVToLocalizationData()
@@ -19,25 +19,39 @@ namespace GameWarriors.LocalizeDomain.Editor
             int languageCount = languageNames.Length;
             for (int i = 1; i < languageCount; ++i)
             {
-                LocalizationData localizationData = AssetDatabase.LoadAssetAtPath<LocalizationData>(string.Format(LocalizationData.ASSET_DATA_PATH, languageNames[i]));
-                List<string[]> languageData = LoadCSVToLocalizationData($"Assets/AssetData/LocalizationData/LocalizationEn{languageNames[i]}");
-                localizationData.RefillData(FillLocalizeData(languageData));
-                EditorUtility.SetDirty(localizationData);
+                string assetPath = string.Format(LocalizationData.ASSET_DATA_PATH, languageNames[i]);
+                LocalizationData localizationData = AssetDatabase.LoadAssetAtPath<LocalizationData>(assetPath);
+                List<string[]> languageData = LoadCSVToLocalizationData($"Assets/AssetData/LocalizationData/Localization{languageNames[i]}.csv");
+                if (languageData != null)
+                {
+                    if (localizationData == null)
+                    {
+                        localizationData = ScriptableObject.CreateInstance<LocalizationData>();
+                        AssetDatabase.CreateAsset(localizationData, assetPath);
+                    }
+                    localizationData.RefillData(FillLocalizeData(languageData));
+                    EditorUtility.SetDirty(localizationData);
+                }
             }
+            AssetDatabase.SaveAssets();
         }
 
         private static List<string[]> LoadCSVToLocalizationData(string path)
         {
-            List<string[]> data = new List<string[]>();
-            TextAsset csv = Resources.Load(path) as TextAsset;
-            StringReader reader = new StringReader(csv.text);
-            while (reader.Peek() != -1)
+            TextAsset csv = AssetDatabase.LoadAssetAtPath<TextAsset>(path);
+            if (csv != null)
             {
-                string line = reader.ReadLine();
-                string[] items = line.Split(SPLIT_STRING.ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries);
-                data.Add(items);
+                List<string[]> data = new List<string[]>();
+                StringReader reader = new StringReader(csv.text);
+                while (reader.Peek() != -1)
+                {
+                    string line = reader.ReadLine();
+                    string[] items = line.Split(SPLIT_STRING.ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries);
+                    data.Add(items);
+                }
+                return data;
             }
-            return data;
+            return null;
         }
 
         private static IEnumerable<(string key, string value)> FillLocalizeData(List<string[]> languageData)

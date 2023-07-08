@@ -43,7 +43,7 @@ namespace GameWarriors.LocalizeDomain.Data
 
         public static string GetAssetPath(ELanguageType languageType)
         {
-            return string.Format(ASSET_DATA_PATH, languageType);
+            return string.Format(ASSET_NAME, languageType);
         }
 
 #if UNITY_EDITOR
@@ -110,6 +110,11 @@ namespace GameWarriors.LocalizeDomain.Data
                     _termList.Add(new TermData(key, value));
                 }
             }
+        }
+
+        public void Dispose()
+        {
+            Resources.UnloadAsset(this);
         }
 
         //public void SetFontsAsset(TMP_FontAsset[] fontsAsset)
