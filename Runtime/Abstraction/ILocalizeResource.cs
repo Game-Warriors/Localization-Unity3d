@@ -6,6 +6,7 @@ namespace GameWarriors.LocalizeDomain.Abstraction
 {
     public interface ILocalizeResource
     {
-        void LoadResourceAsync(string assetName, Action<LocalizationData> onLoadDone);
+        ILocalizationData LoadResource(ELanguageType languageType);
+        void LoadResourceAsync(ELanguageType languageType, Action<ILocalizationData> onLoadDone);
     }
 }

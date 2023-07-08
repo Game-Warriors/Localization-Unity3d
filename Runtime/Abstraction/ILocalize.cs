@@ -23,6 +23,7 @@ namespace GameWarriors.LocalizeDomain.Abstraction
         string GetTermTranslation(string term, ELanguageType languageType);
         Sprite GetLocalizedSprite(string key);
         //TMP_FontAsset GetFontAsset(ELanguageType languageType);
-        void SetLanguage(ELanguageType languageType);
+        void ChangeLanguage(ELanguageType languageType);
+        void ChangeLanguageAsync(ELanguageType language);
     }
 }

@@ -18,17 +18,20 @@ namespace GameWarriors.LocalizeDomain.Editor
         private Vector2 v2;
 
         private string _searchContent;
-        private int _indexSelect = 0;
+        private string _selectedKey;
         private Dictionary<string, string[]> _termsTable;
-        private LocalizationData _localizeData;
-        private int _languageCount;
+        private Dictionary<string, LocalizationData> _assetTable;
+
         private int _currentTab = 0;
         private int _lastTab = 0;
         private string[] _languageContents;
         private string[] _tabs = new string[] { "Terms", "New Term", "Language", "Font Assets" };
         private string[] _languageNames;
 
-        [MenuItem("Tools/Localization Editor")]
+        private int LanguageCount => _languageContents.Length - 1;
+        public int TermCount => _termsTable?.Keys.Count ?? 0;
+
+        [MenuItem("Tools/Localization/Open Editor")]
         static void ShowLocalizationWindow()
         {
             LocalizationTextEditor localizationEditor = (LocalizationTextEditor)GetWindow(typeof(LocalizationTextEditor));
@@ -39,23 +42,19 @@ namespace GameWarriors.LocalizeDomain.Editor
         private void Initialization()
         {
             _searchContent = string.Empty;
-            _languageCount = Enum.GetValues(typeof(ELanguageType)).Length - 1;
-            _languageContents = new string[_languageCount + 1];
-            _languageNames = new string[_languageCount];
+            int languageCount = Enum.GetNames(typeof(ELanguageType)).Length - 1;
+            _languageContents = new string[languageCount + 1];
+            _languageNames = new string[languageCount];
 
-            for (int i = 0; i < _languageCount; ++i)
+            for (int i = 0; i < languageCount; ++i)
             {
                 _languageNames[i] = ((ELanguageType)i).ToString();
             }
-            _indexSelect = 0;
+            _selectedKey = string.Empty;
             Directory.CreateDirectory("Assets/AssetData/Resources");
-            _localizeData = AssetDatabase.LoadAssetAtPath<LocalizationData>(LocalizationData.ASSET_DATA_PATH);
-            if (_localizeData == null)
-            {
-                _localizeData = CreateInstance<LocalizationData>();
-                AssetDatabase.CreateAsset(_localizeData, LocalizationData.ASSET_DATA_PATH);
-            }
-            _termsTable = new Dictionary<string, string[]>(400);
+
+            LoadAllLocalizeData();
+
             RefreshPrefab();
             RefreshContentList();
 
@@ -113,13 +112,51 @@ namespace GameWarriors.LocalizeDomain.Editor
             styleSelect.alignment = TextAnchor.MiddleLeft;
         }
 
+        private void LoadAllLocalizeData()
+        {
+            int length = LanguageCount;
+            _termsTable = new Dictionary<string, string[]>(400);
+            _assetTable = new Dictionary<string, LocalizationData>(length);
+            for (int i = 0; i < length; ++i)
+            {
+                string languageKey = _languageNames[i];
+                string assetPath = string.Format(LocalizationData.ASSET_DATA_PATH, languageKey);
+                LocalizationData localizeData = AssetDatabase.LoadAssetAtPath<LocalizationData>(assetPath);
+
+                if (localizeData == null)
+                {
+                    localizeData = CreateInstance<LocalizationData>();
+                    AssetDatabase.CreateAsset(localizeData, assetPath);
+                }
+                _assetTable.Add(languageKey, localizeData);
+
+                FillTermTable(i, length, localizeData);
+            }
+        }
+
+        private void FillTermTable(int languageId, int languageCount, LocalizationData localizationData)
+        {
+            foreach ((string key, string value) item in localizationData.AllItems)
+            {
+                if (_termsTable.ContainsKey(item.key))
+                {
+                    _termsTable[item.key][languageId] = item.value;
+                }
+                else
+                {
+                    string[] items = new string[languageCount];
+                    items[languageId] = item.value;
+                    _termsTable.Add(item.key, items);
+                }
+            }
+        }
+
         void RefreshPrefab()
         {
             _searchContent = string.Empty;
-            _localizeData.FillDicTable(_termsTable);
         }
 
-        public bool Findstring(string a, string b)
+        public bool FindString(string a, string b)
         {
             return a.IndexOf(b) > -1;
         }
@@ -146,13 +183,13 @@ namespace GameWarriors.LocalizeDomain.Editor
 
         private void DrawNewTermTab()
         {
-            int count = _languageCount + 1;
+            int count = LanguageCount + 1;
             if (_lastTab != _currentTab)
             {
                 Array.Clear(_languageContents, 0, count);
             }
 
-            EditorUtility.SetDirty(_localizeData);
+            SetLocalizeDataDirty();
             GUILayout.Space(10);
 
             GUILayout.BeginHorizontal();
@@ -180,7 +217,7 @@ namespace GameWarriors.LocalizeDomain.Editor
                 Array.Clear(_languageContents, 0, count);
             }
             GUILayout.Space(50);
-            if (GUILayout.Button("Save", GUILayout.Width(100), GUILayout.Height(40)) && _languageCount > 0)
+            if (GUILayout.Button("Save", GUILayout.Width(100), GUILayout.Height(40)) && LanguageCount > 0)
             {
                 bool HaveTerm = _termsTable.ContainsKey(_languageContents[0]);
                 if (HaveTerm)
@@ -192,15 +229,15 @@ namespace GameWarriors.LocalizeDomain.Editor
                     int b = EditorUtility.DisplayDialogComplex("Do Saved", "Are You Sure?", "Save", "cancle", "Dont Save");
                     if (b == 0)
                     {
-                        EditorUtility.SetDirty(_localizeData);
-                        string[] contexts = new string[_languageCount];
+                        SetLocalizeDataDirty();
+                        string[] contexts = new string[LanguageCount];
                         Term term = new Term(_languageContents[0], contexts);
-                        for (int j = 0; j < _languageCount; ++j)
+                        for (int j = 0; j < LanguageCount; ++j)
                         {
                             term.Contents[j] = _languageContents[j + 1];
                         }
                         AddData(term);
-                        Array.Clear(_languageContents, 0, _languageCount);
+                        Array.Clear(_languageContents, 0, LanguageCount);
                         RefreshPrefab();
                         AssetDatabase.SaveAssets();
                         AssetDatabase.Refresh();
@@ -224,13 +261,13 @@ namespace GameWarriors.LocalizeDomain.Editor
             if (GUILayout.Button("Save", GUILayout.Width(100), GUILayout.Height(45)))
             {
                 int b = EditorUtility.DisplayDialogComplex("Save Term", "Are You Sure?", "Save", "Cancle", "Don't Save");
-                if (b == 0 && _languageCount > 0)
+                if (b == 0 && LanguageCount > 0)
                 {
-                    EditorUtility.SetDirty(_localizeData);
+                    SetLocalizeDataDirty();
                     //RefreshPrefab();
-                    Term t = new Term(_languageContents[0], new string[_languageCount]);
+                    Term t = new Term(_languageContents[0], new string[LanguageCount]);
 
-                    for (int i = 0; i < _languageCount; i++)
+                    for (int i = 0; i < LanguageCount; i++)
                     {
                         t.Contents[i] = _languageContents[i + 1];
                     }
@@ -245,21 +282,25 @@ namespace GameWarriors.LocalizeDomain.Editor
             GUILayout.Space(20);
             if (_termsTable == null)
                 Initialization();
-            GUILayout.Label(_termsTable.Translate(_localizeData.GetTermKeyAt(_indexSelect), (ELanguageType)1), GUILayout.Width(500));
-            GUILayout.Space(80);
-            if (GUILayout.Button("Delete", GUILayout.Width(100), GUILayout.Height(45)))
+            string key = _selectedKey;
+            if (!string.IsNullOrEmpty(key))
             {
-                if (EditorUtility.DisplayDialogComplex("Do Delete", "Are You Sure For Delete?", "Delete", "cancle", "Dont Delete") == 0)
+                GUILayout.Label(_termsTable.Translate(key, (ELanguageType)1), GUILayout.Width(500));
+                GUILayout.Space(80);
+                if (GUILayout.Button("Delete", GUILayout.Width(100), GUILayout.Height(45)))
                 {
-                    EditorUtility.SetDirty(_localizeData);
-                    RemoveData(_localizeData.GetTermKeyAt(_indexSelect));
-                    RefreshPrefab();
-                    AssetDatabase.SaveAssets();
-                    AssetDatabase.Refresh();
-                    if (_localizeData.DataCount <= _indexSelect)
-                        _indexSelect = _localizeData.DataCount - 1;
+                    if (EditorUtility.DisplayDialogComplex("Do Delete", "Are You Sure For Delete?", "Delete", "cancle", "Dont Delete") == 0)
+                    {
+                        SetLocalizeDataDirty();
+                        RemoveData(key);
+                        RefreshPrefab();
+                        AssetDatabase.SaveAssets();
+                        AssetDatabase.Refresh();
+                        _selectedKey = string.Empty;
+                    }
                 }
             }
+
             GUILayout.EndVertical();
         }
 
@@ -271,31 +312,32 @@ namespace GameWarriors.LocalizeDomain.Editor
 
             EditorGUILayout.Space();
             EditorGUILayout.BeginVertical();
-            GUILayout.Label("count Terms :" + _localizeData.DataCount, GUILayout.Width(150));
+            int dataCount = TermCount;
+            GUILayout.Label("count Terms :" + dataCount, GUILayout.Width(150));
             EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
             //GUILayout.Label("_____________________________________________________________", GUILayout.Width(480));
-            if (_localizeData.DataCount == 0)
+            if (dataCount == 0)
             {
                 EditorGUILayout.EndVertical();
                 return;
             }
             _scrollViewRect = EditorGUILayout.BeginScrollView(_scrollViewRect, GUILayout.Height(500), GUILayout.Width(420));
-            for (int i = 0; i < _localizeData.DataCount; ++i)
+            int counter = 0;
+            foreach (var item in _termsTable.Keys)
             {
                 if (string.IsNullOrEmpty(_searchContent))
                 {
-                    if (_indexSelect == i)
+                    if (_selectedKey == item)
                     {
-                        if (GUILayout.Button("      " + _localizeData.GetTermKeyAt(i), styleSelect, GUILayout.Width(400), GUILayout.Height(50)))
+                        if (GUILayout.Button("      " + item, styleSelect, GUILayout.Width(400), GUILayout.Height(50)))
                         {
-                            _indexSelect = i;
+                            _selectedKey = item;
                             RefreshContentList();
                         }
                     }
-                    else
-                    if (GUILayout.Button("      " + _localizeData.GetTermKeyAt(i), i % 2 == 0 ? style : style2, GUILayout.Width(400), GUILayout.Height(35)))
+                    else if (GUILayout.Button("      " + item, counter % 2 == 0 ? style : style2, GUILayout.Width(400), GUILayout.Height(35)))
                     {
-                        _indexSelect = i;
+                        _selectedKey = item;
                         RefreshContentList();
                     }
                 }
@@ -304,27 +346,27 @@ namespace GameWarriors.LocalizeDomain.Editor
                     if (_termsTable == null)
                         Initialization();
 
-                    string content = _termsTable.Translate(_localizeData.GetTermKeyAt(i), (ELanguageType)1);
+                    string content = _termsTable.Translate(item, (ELanguageType)1);
 
-                    if (Findstring(_localizeData.GetTermKeyAt(i).ToLower(), _searchContent.ToLower()) || Findstring(content.ToLower(), _searchContent.ToLower()))
+                    if (FindString(item.ToLower(), _searchContent.ToLower()) || FindString(content.ToLower(), _searchContent.ToLower()))
                     {
-                        if (_indexSelect == i)
+                        if (_selectedKey == item)
                         {
-                            if (GUILayout.Button("      " + _localizeData.GetTermKeyAt(i), styleSelect, GUILayout.Width(400), GUILayout.Height(60)))
+                            if (GUILayout.Button("      " + item, styleSelect, GUILayout.Width(400), GUILayout.Height(60)))
                             {
-                                _indexSelect = i;
+                                _selectedKey = item;
                                 RefreshContentList();
                             }
                         }
-                        else
-                        if (GUILayout.Button("      " + _localizeData.GetTermKeyAt(i), i % 2 == 0 ? style : style2, GUILayout.Width(400), GUILayout.Height(45)))
+                        else if (GUILayout.Button("      " + item, counter % 2 == 0 ? style : style2, GUILayout.Width(400), GUILayout.Height(45)))
                         {
-                            _indexSelect = i;
+                            _selectedKey = item;
                             RefreshContentList();
                         }
                     }
 
                 }
+                ++counter;
             }
             EditorGUILayout.EndScrollView();
             EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
@@ -337,7 +379,7 @@ namespace GameWarriors.LocalizeDomain.Editor
             {
                 RefreshContentList();
             }
-            ShowTranslateterm(_indexSelect);
+            ShowTranslateTerm();
             EditorGUILayout.EndScrollView();
             GUILayout.Space(100);
             DrawModifySection();
@@ -348,7 +390,7 @@ namespace GameWarriors.LocalizeDomain.Editor
 
         private void DrawFontAssetTab()
         {
-            int length = _languageCount;
+            int length = LanguageCount;
             //if (_localizeData.FontsAsset.Length < _languageCount)
             //{
             //    TMP_FontAsset[] fonts = _localizeData.FontsAsset;
@@ -371,35 +413,39 @@ namespace GameWarriors.LocalizeDomain.Editor
 
         private void RefreshContentList()
         {
-            int length = _languageCount + 1;
+            int length = LanguageCount + 1;
             Array.Clear(_languageContents, 0, length);
-            if (_languageCount > 0)
-                _languageContents[0] = _localizeData.GetTermKeyAt(_indexSelect);
+            string key = _selectedKey;
+            if (LanguageCount > 0)
+                _languageContents[0] = key;
             if (_termsTable == null)
                 Initialization();
 
-            for (int i = 1; i < length; ++i)
+            if (!string.IsNullOrEmpty(key))
             {
-                _languageContents[i] = _termsTable.Translate(_localizeData.GetTermKeyAt(_indexSelect), (ELanguageType)i - 1);
+                for (int i = 1; i < length; ++i)
+                {
+                    _languageContents[i] = _termsTable.Translate(key, (ELanguageType)i - 1);
+                }
             }
         }
 
-        public void ShowTranslateterm(int index)
+        public void ShowTranslateTerm()
         {
             GUILayout.BeginHorizontal();
             GUILayout.Label("Term : ", GUILayout.Width(70));
             // I2Languages.mTerms[index].Term= EditorGUILayout.TextField(I2Languages.mTerms[index].Term, GUILayout.Width(700));
-            if (_languageCount > 0)
+            if (LanguageCount > 0)
                 _languageContents[0] = EditorGUILayout.TextField(_languageContents[0], GUILayout.Width(700));
             GUILayout.EndHorizontal();
             GUILayout.Space(10);
             GUILayout.Space(10);
 
-            int length = _languageCount + 1;
+            int length = LanguageCount + 1;
             for (int i = 1; i < length; ++i)
             {
                 GUILayout.BeginHorizontal();
-                GUILayout.Label(Enum.GetNames(typeof(ELanguageType))[i-1] + " : ", GUILayout.Width(70));
+                GUILayout.Label(Enum.GetNames(typeof(ELanguageType))[i - 1] + " : ", GUILayout.Width(70));
                 _languageContents[i] = EditorGUILayout.TextField(_languageContents[i], GUILayout.Width(700));
                 GUILayout.EndHorizontal();
                 GUILayout.Space(10);
@@ -408,11 +454,12 @@ namespace GameWarriors.LocalizeDomain.Editor
 
         private void RefreshListTerms()
         {
-            if (_localizeData.DataCount == 0)
+            int termCount = TermCount;
+            if (termCount == 0)
                 return;
             EditorUtility.DisplayProgressBar("Please Wait ....", "For Update List Term", 0.001f);
-            float f = 1f / _localizeData.DataCount;
-            for (var i = 0; i < _localizeData.DataCount; ++i)
+            float f = 1f / termCount;
+            for (var i = 0; i < termCount; ++i)
             {
                 EditorUtility.DisplayProgressBar("Please Wait ....", "For Update List Term", f * i);
             }
@@ -424,7 +471,18 @@ namespace GameWarriors.LocalizeDomain.Editor
             if (!_termsTable.ContainsKey(newTerm.Key))
             {
                 _termsTable.Add(newTerm.Key, newTerm.Contents);
-                _localizeData.AddTerm(newTerm);
+                int counter = 0;
+                foreach (var item in _assetTable.Values)
+                {
+                    LocalizationData localizeData = item;
+                    string word = newTerm.Contents[counter];
+                    if (!string.IsNullOrEmpty(word))
+                    {
+                        localizeData.AddTerm(newTerm.Key, word);
+                        EditorUtility.SetDirty(localizeData);
+                    }
+                    ++counter;
+                }
             }
         }
 
@@ -433,7 +491,14 @@ namespace GameWarriors.LocalizeDomain.Editor
             if (_termsTable.ContainsKey(key))
             {
                 _termsTable.Remove(key);
-                _localizeData.RemoveTerm(key);
+                int counter = 0;
+                foreach (var item in _assetTable.Values)
+                {
+                    LocalizationData localizeData = item;
+                    localizeData.RemoveTerm(key);
+                    EditorUtility.SetDirty(localizeData);
+                    ++counter;
+                }
             }
         }
 
@@ -442,9 +507,27 @@ namespace GameWarriors.LocalizeDomain.Editor
             if (_termsTable.ContainsKey(targetTerm.Key))
             {
                 _termsTable[targetTerm.Key] = targetTerm.Contents;
-                _localizeData.UpdateTerm(targetTerm);
+                int counter = 0;
+                foreach (var item in _assetTable.Values)
+                {
+                    LocalizationData localizeData = item;
+                    string word = targetTerm.Contents[counter];
+                    if (!string.IsNullOrEmpty(word))
+                    {
+                        if (localizeData.UpdateTerm(targetTerm.Key, word))
+                            EditorUtility.SetDirty(localizeData);
+                    }
+                    ++counter;
+                }
             }
         }
 
+        private void SetLocalizeDataDirty()
+        {
+            foreach (var localizeData in _assetTable.Values)
+            {
+                EditorUtility.SetDirty(localizeData);
+            }
+        }
     }
 }

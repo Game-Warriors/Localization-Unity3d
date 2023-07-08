@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using GameWarriors.LocalizeDomain.Abstraction;
-using GameWarriors.LocalizeDomain.Data;
 using GameWarriors.LocalizeDomain.Extensions;
 using System.Threading.Tasks;
 using System.Collections;
@@ -13,11 +12,13 @@ namespace GameWarriors.LocalizeDomain.Core
     public class LocalizationSystem : ILocalize
     {
         private const string LANGUAGE_CACH_ID = "LCID";
-
         public event Action OnLanguageChanged;
-        private LocalizationData _dataCollection;
+
+        private readonly ILocalizeResource _localizeResource;
+        private Dictionary<string, string> _termsDictionary;
         private ELanguageType _currentLanguage;
-        private Dictionary<string, string[]> _termsDictionary;
+
+
         //private TMP_FontAsset[] _fontsAsset;
 
         public bool IsRTL => CurrentLanguage == ELanguageType.Fa || CurrentLanguage == ELanguageType.Ar;
@@ -36,8 +37,7 @@ namespace GameWarriors.LocalizeDomain.Core
             else
                 _currentLanguage = (ELanguageType)cacheLanguageId;
             PlayerPrefs.SetInt(LANGUAGE_CACH_ID, (int)_currentLanguage);
-
-            localizeResource.LoadResourceAsync(LocalizationData.ASSET_NAME, LoadData);
+            localizeResource.LoadResourceAsync(_currentLanguage, LoadData);
         }
 
         [UnityEngine.Scripting.Preserve]
@@ -55,14 +55,31 @@ namespace GameWarriors.LocalizeDomain.Core
             yield return new WaitUntil(() => _termsDictionary != null);
         }
 
-        public void SetLanguage(ELanguageType language)
+        public void ChangeLanguage(ELanguageType language)
         {
             if (_currentLanguage != language)
             {
                 _currentLanguage = language;
                 PlayerPrefs.SetInt(LANGUAGE_CACH_ID, (int)language);
                 PlayerPrefs.Save();
+                ILocalizationData localizationData = _localizeResource.LoadResource(_currentLanguage);
+                LoadData(localizationData);
                 OnLanguageChanged?.Invoke();
+            }
+        }
+
+        public void ChangeLanguageAsync(ELanguageType language)
+        {
+            if (_currentLanguage != language)
+            {
+                _currentLanguage = language;
+                PlayerPrefs.SetInt(LANGUAGE_CACH_ID, (int)language);
+                PlayerPrefs.Save();
+                _localizeResource.LoadResourceAsync(_currentLanguage, localizationData =>
+                {
+                    LoadData(localizationData);
+                    OnLanguageChanged?.Invoke();
+                });
             }
         }
 
@@ -167,14 +184,13 @@ namespace GameWarriors.LocalizeDomain.Core
             return line;
         }
 
-        private void LoadData(LocalizationData dataCollection)
+        private void LoadData(ILocalizationData dataCollection)
         {
-            _dataCollection = dataCollection;
             //_fontsAsset = _dataCollection.FontsAsset;
-            int length = _dataCollection.DataCount;
-            _termsDictionary = new Dictionary<string, string[]>(length);
-            _dataCollection.FillDicTable(_termsDictionary);
+            int length = dataCollection.DataCount;
+            _termsDictionary = new Dictionary<string, string>(length);
+            dataCollection.FillDicTable(_termsDictionary);
+            dataCollection.Dispose();
         }
-
     }
 }
