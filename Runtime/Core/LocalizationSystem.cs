@@ -37,6 +37,7 @@ namespace GameWarriors.LocalizeDomain.Core
             else
                 _currentLanguage = (ELanguageType)cacheLanguageId;
             PlayerPrefs.SetInt(LANGUAGE_CACH_ID, (int)_currentLanguage);
+            _localizeResource = localizeResource;
             localizeResource.LoadResourceAsync(_currentLanguage, LoadData);
         }
 

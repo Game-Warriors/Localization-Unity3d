@@ -46,7 +46,7 @@ namespace GameWarriors.LocalizeDomain.Editor
                 while (reader.Peek() != -1)
                 {
                     string line = reader.ReadLine();
-                    string[] items = line.Split(SPLIT_STRING.ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries);
+                    string[] items = line.Split(',', 2, StringSplitOptions.RemoveEmptyEntries);
                     data.Add(items);
                 }
                 return data;

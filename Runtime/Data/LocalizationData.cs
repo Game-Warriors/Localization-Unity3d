@@ -46,6 +46,11 @@ namespace GameWarriors.LocalizeDomain.Data
             return string.Format(ASSET_NAME, languageType);
         }
 
+        public void Dispose()
+        {
+            Resources.UnloadAsset(this);
+        }
+
 #if UNITY_EDITOR
 
         public void RemoveTerm(string key)
@@ -110,11 +115,6 @@ namespace GameWarriors.LocalizeDomain.Data
                     _termList.Add(new TermData(key, value));
                 }
             }
-        }
-
-        public void Dispose()
-        {
-            Resources.UnloadAsset(this);
         }
 
         //public void SetFontsAsset(TMP_FontAsset[] fontsAsset)
