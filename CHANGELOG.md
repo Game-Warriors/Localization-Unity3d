@@ -1,3 +1,6 @@
+  version : 0.0.8
+  add preserve attribute on localize system class constructor 
+
   version : 0.0.7
   fix null reference bug
 

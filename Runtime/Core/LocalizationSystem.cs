@@ -6,6 +6,7 @@ using GameWarriors.LocalizeDomain.Abstraction;
 using GameWarriors.LocalizeDomain.Extensions;
 using System.Threading.Tasks;
 using System.Collections;
+using UnityEngine.Scripting;
 
 namespace GameWarriors.LocalizeDomain.Core
 {
@@ -24,6 +25,7 @@ namespace GameWarriors.LocalizeDomain.Core
         public bool IsRTL => CurrentLanguage == ELanguageType.Fa || CurrentLanguage == ELanguageType.Ar;
         public ELanguageType CurrentLanguage => _currentLanguage;
 
+        [Preserve]
         public LocalizationSystem(ILocalizeResource localizeResource)
         {
             if (localizeResource == null)
@@ -41,7 +43,6 @@ namespace GameWarriors.LocalizeDomain.Core
             localizeResource.LoadResourceAsync(_currentLanguage, LoadData);
         }
 
-        [UnityEngine.Scripting.Preserve]
         public async Task WaitForLoading()
         {
             while (_termsDictionary == null)
@@ -50,7 +51,6 @@ namespace GameWarriors.LocalizeDomain.Core
             }
         }
 
-        [UnityEngine.Scripting.Preserve]
         public IEnumerator WaitForLoadingCoroutine()
         {
             yield return new WaitUntil(() => _termsDictionary != null);
